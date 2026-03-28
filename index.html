@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CP2077 PROTOCOL: INFINITY v12</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Rajdhani:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --cp-red: #ff003c;
+            --cp-cyan: #00f0ff;
+            --cp-yellow: #fcee0a;
+            --cp-magenta: #ff00ea;
+            --cp-bg: #0d0d0d;
+            --cp-text: #ececec;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            font-family: 'Rajdhani', sans-serif;
+            color: var(--cp-text);
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+
+        .quest-container {
+            width: 210mm;
+            min-height: 297mm;
+            background-color: var(--cp-bg);
+            border: 2px solid var(--cp-red);
+            padding: 40px;
+            box-sizing: border-box;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 30px rgba(255, 0, 60, 0.25);
+            border-radius: 5px;
+        }
+
+        /* 스캔라인 효과 (v2.0 스타일) */
+        .quest-container::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.15) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
+            z-index: 100;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* --- v2.0 GLITCH ENGINE --- */
+        @keyframes glitch {
+            0% { clip-path: polygon(0 2%, 100% 2%, 100% 5%, 0 5%); transform: translate(0); }
+            1% { clip-path: polygon(0 78%, 100% 78%, 100% 100%, 0 100%); transform: translate(-5px); }
+            2% { clip-path: polygon(0 78%, 100% 78%, 100% 100%, 0 100%); transform: translate(5px); }
+            3% { clip-path: polygon(0 2%, 100% 2%, 100% 5%, 0 5%); transform: translate(0); }
+            50% { transform: translate(var(--glitch-translate, -2px), 2px); }
+            100% { transform: translate(0); }
+        }
+
+        .glitch-ready { position: relative; }
+        .glitch-ready::after {
+            content: attr(data-text);
+            position: absolute;
+            left: 2px;
+            text-shadow: -2px 0 var(--cp-cyan);
+            top: 0;
+            background: transparent;
+            overflow: hidden;
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 활성화된 글리치 상태 */
+        .glitch-active::after {
+            opacity: 0.8;
+            animation: glitch 0.4s linear infinite;
+        }
+
+        /* 1. TITLE (v2.0 테마 + v11.0 옐로우 조합) */
+        .header-main {
+            background-color: var(--cp-yellow);
+            color: black;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.2rem;
+            padding: 10px 25px;
+            font-weight: 700;
+            display: inline-block;
+            align-self: flex-start;
+            margin-bottom: 25px;
+            clip-path: polygon(0 0, 95% 0, 100% 30%, 100% 100%, 5% 100%, 0 70%);
+            border-radius: 5px;
+        }
+        .header-main::after {
+            background: var(--cp-yellow);
+            color: black;
+            left: 1px;
+        }
+
+        /* 2. OBJECTIVES (v11.0 가독성 레이아웃 유지) */
+        .section-title {
+            color: var(--cp-cyan);
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 35px;
+            margin-bottom: 20px;
+            border-left: 6px solid var(--cp-cyan);
+            padding-left: 35px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .reward-badge { font-family: 'Share Tech Mono', monospace; font-size: 0.9rem; display: flex; gap: 10px; }
+        .r-exp { color: var(--cp-cyan); } .r-oe { color: var(--cp-yellow); } .r-men { color: var(--cp-magenta); }
+
+        .objective-item { display: flex; margin-bottom: 25px; gap: 15px; align-items: flex-start; }
+
+        .checkbox {
+            width: 26px; height: 26px; border: 2px solid var(--cp-red);
+            appearance: none; -webkit-appearance: none; cursor: pointer; flex-shrink: 0; position: relative;
+            margin-top: 4px;
+        }
+        .checkbox:checked { background: var(--cp-red); }
+        .checkbox:checked::after { content: '✖'; color: black; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-weight: bold; font-size: 1.1rem; }
+
+        .objective-content { font-size: 1.2rem; flex-grow: 1; display: flex; flex-direction: column; gap: 8px; }
+        .order-label { font-family: 'Orbitron', sans-serif; font-size: 0.9rem; color: #777; letter-spacing: 1px; }
+        .item-text { font-weight: 500; padding-left: 2px; }
+
+        .editable-to-do {
+            background: transparent; border: none; border-bottom: 1px solid #333;
+            color: var(--cp-text); font-family: inherit; font-size: 1.3rem; width: 100%;
+            padding: 5px 0; margin-top: 2px;
+        }
+        .editable-to-do:focus { outline: none; border-bottom: 1px solid var(--cp-cyan); color: var(--cp-cyan); }
+
+        /* 3. TIMER (MIDDLE POSITION) */
+        .timer-module {
+            display: flex; align-items: center; justify-content: space-between;
+            border: 1px solid #333; padding: 15px 25px; margin: 30px 0;
+            background: rgba(255, 255, 255, 0.02);
+        }
+        #timer-display { font-family: 'Share Tech Mono', monospace; font-size: 3.5rem; color: var(--cp-red); text-shadow: 0 0 10px var(--cp-red); }
+        .timer-controls button {
+            background: transparent; border: 1px solid var(--cp-red); color: var(--cp-red);
+            font-family: 'Orbitron', sans-serif; padding: 8px 15px; margin-left: 10px; cursor: pointer; font-size: 0.8rem;
+        }
+
+        /* 4. STATS (BOTTOM FLAT STYLE) */
+        .stats-panel { margin-top: auto; padding-top: 20px; border-top: 1px solid #222; }
+        .stat-group { margin-bottom: 15px; }
+        .stat-label { display: flex; justify-content: space-between; font-family: 'Orbitron', sans-serif; font-size: 0.9rem; margin-bottom: 4px; }
+        .progress-bar-bg { width: 100%; height: 10px; background: #111; border: 1px solid #333; }
+        .progress-bar-fill { height: 100%; transition: width 0.4s ease-out; }
+
+        .reset-btn {
+            background: rgba(255, 0, 60, 0.05); border: 1px solid var(--cp-red); color: var(--cp-red);
+            font-family: 'Orbitron', sans-serif; padding: 15px; width: 100%; margin-top: 20px;
+            cursor: pointer; font-size: 0.9rem; letter-spacing: 2px; text-transform: uppercase;
+        }
+        .reset-btn:active { background: var(--cp-red); color: black; }
+
+        @media (max-width: 210mm) { .quest-container { width: 100%; min-height: 100vh; padding: 25px; border: none; } }
+    </style>
+</head>
+<body>
+
+<div class="quest-container">
+    <div class="header-main glitch-ready" data-text="[CP2077 PROTOCOL: INFINITY]">[CP2077 PROTOCOL: INFINITY]</div>
+
+    <div class="section-title glitch-ready" data-text="[MANDATORY OBJECTIVES]">
+        [MANDATORY OBJECTIVES]
+        <div class="reward-badge">
+            <span class="r-exp">EXP +10</span><span class="r-oe">OE +1</span><span class="r-men">MEN +1</span>
+        </div>
+    </div>
+    <div class="objective-item">
+        <input type="checkbox" class="checkbox gear-check" id="check-g1" onchange="checkGearCompletion()">
+        <div class="objective-content">
+            <span class="order-label">ORDER: CARD WALLET</span>
+            <span class="item-text">COLLECT PAYMENT</span>
+        </div>
+    </div>
+    <div class="objective-item">
+        <input type="checkbox" class="checkbox gear-check" id="check-g2" onchange="checkGearCompletion()">
+        <div class="objective-content">
+            <span class="order-label">ORDER: AIRPODS</span>
+            <span class="item-text">HEARING PROTECTION / AUTO-TRANSLATION</span>
+        </div>
+    </div>
+    <div class="objective-item">
+        <input type="checkbox" class="checkbox gear-check" id="check-g3" onchange="checkGearCompletion()">
+        <div class="objective-content">
+            <span class="order-label">ORDER: POWER BANK</span>
+            <span class="item-text">EXTEND GEAR OPERATIONAL TIME</span>
+        </div>
+    </div>
+    <div class="objective-item">
+        <input type="checkbox" class="checkbox gear-check" id="check-g4" onchange="checkGearCompletion()">
+        <div class="objective-content">
+            <span class="order-label">ORDER: WATER BOTTLE</span>
+            <span class="item-text">HYDRATION MAINTENANCE</span>
+        </div>
+    </div>
+    <div class="objective-item">
+        <input type="checkbox" class="checkbox gear-check" id="check-g5" onchange="checkGearCompletion()">
+        <div class="objective-content">
+            <span class="order-label">ORDER: SNACK</span>
+            <span class="item-text">SATIETY MAINTENANCE</span>
+        </div>
+    </div>
+
+    <div class="section-title glitch-ready" data-text="[ADDITIONAL OBJECTIVES]">
+        [ADDITIONAL OBJECTIVES]
+        <div class="reward-badge"><span class="r-exp">EXP +5</span><span class="r-men">MEN +1</span></div>
+    </div>
+    <div class="objective-item">
+        <input type="checkbox" class="checkbox add-check" id="check-add1" onchange="checkAddCompletion(0)">
+        <div class="objective-content">
+            <span class="order-label">ORDER: PRIMARY MISSION</span>
+            <input type="text" id="text-add1" class="editable-to-do" placeholder="Awaiting Input..." oninput="saveText()">
+        </div>
+    </div>
+    <div class="objective-item">
+        <input type="checkbox" class="checkbox add-check" id="check-add2" onchange="checkAddCompletion(1)">
+        <div class="objective-content">
+            <span class="order-label">ORDER: SECONDARY MISSION</span>
+            <input type="text" id="text-add2" class="editable-to-do" placeholder="Awaiting Input..." oninput="saveText()">
+        </div>
+    </div>
+    <div class="objective-item">
+        <input type="checkbox" class="checkbox add-check" id="check-add3" onchange="checkAddCompletion(2)">
+        <div class="objective-content">
+            <span class="order-label">ORDER: TERTIARY MISSION</span>
+            <input type="text" id="text-add3" class="editable-to-do" placeholder="Awaiting Input..." oninput="saveText()">
+        </div>
+    </div>
+
+    <div class="timer-module">
+        <div id="timer-display">00:00:00</div>
+        <div class="timer-controls"><button onclick="startTimer()">START</button><button onclick="stopTimer()">STOP</button><button onclick="resetTimer()">RESET</button></div>
+    </div>
+
+    <div class="stats-panel">
+        <div class="stat-group"><div class="stat-label" style="color: var(--cp-cyan);"><span>LEVEL</span> <span id="lvl-val">Lv.1 (0/100)</span></div><div class="progress-bar-bg"><div id="lvl-bar" class="progress-bar-fill" style="background: var(--cp-cyan);"></div></div></div>
+        <div class="stat-group"><div class="stat-label" style="color: var(--cp-yellow);"><span>OPERATIONAL EFFICIENCY</span> <span id="op-val">Lv.1 (0/10)</span></div><div class="progress-bar-bg"><div id="op-bar" class="progress-bar-fill" style="background: var(--cp-yellow);"></div></div></div>
+        <div class="stat-group"><div class="stat-label" style="color: var(--cp-magenta);"><span>MENTALITY</span> <span id="men-val">Lv.1 (0/10)</span></div><div class="progress-bar-bg"><div id="men-bar" class="progress-bar-fill" style="background: var(--cp-magenta);"></div></div></div>
+        <button class="reset-btn" onclick="resetDailyProtocol()">[Execute Daily Reset Protocol]</button>
+    </div>
+</div>
+
+<script>
+    // TIMER
+    let timerInterval, seconds = 0;
+    function startTimer() { clearInterval(timerInterval); timerInterval = setInterval(() => { seconds++; updateTimerUI(); }, 1000); }
+    function stopTimer() { clearInterval(timerInterval); }
+    function resetTimer() { stopTimer(); seconds = 0; updateTimerUI(); }
+    function updateTimerUI() {
+        const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+        const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+        const s = String(seconds % 60).padStart(2, '0');
+        document.getElementById('timer-display').innerText = `${h}:${m}:${s}`;
+    }
+
+    // STATS
+    let stats = { level: 1, exp: 0, opLvl: 1, opExp: 0, menLvl: 1, menExp: 0 };
+    let gearAllDone = false;
+    let addState = [false, false, false];
+
+    function saveAll() {
+        localStorage.setItem('cp_inf_v12_stats', JSON.stringify(stats));
+        localStorage.setItem('cp_inf_v12_gear_all', JSON.stringify(gearAllDone));
+        localStorage.setItem('cp_inf_v12_add', JSON.stringify(addState));
+        const gearChecks = Array.from(document.querySelectorAll('.gear-check')).map(c => c.checked);
+        localStorage.setItem('cp_inf_v12_gear_checks', JSON.stringify(gearChecks));
+    }
+
+    function saveText() {
+        const textData = { t1: document.getElementById('text-add1').value, t2: document.getElementById('text-add2').value, t3: document.getElementById('text-add3').value };
+        localStorage.setItem('cp_inf_v12_text', JSON.stringify(textData));
+    }
+
+    function checkGearCompletion() {
+        const currentAllChecked = Array.from(document.querySelectorAll('.gear-check')).every(c => c.checked);
+        if (currentAllChecked && !gearAllDone) { addPoints(10, 1, 1); gearAllDone = true; }
+        else if (!currentAllChecked && gearAllDone) { addPoints(-10, -1, -1); gearAllDone = false; }
+        updateUI(); saveAll();
+    }
+
+    function checkAddCompletion(idx) {
+        const checked = document.getElementById(`check-add${idx+1}`).checked;
+        if (checked && !addState[idx]) { addPoints(5, 0, 1); addState[idx] = true; }
+        else if (!checked && addState[idx]) { addPoints(-5, 0, -1); addState[idx] = false; }
+        updateUI(); saveAll();
+    }
+
+    function addPoints(e, o, m) {
+        stats.exp += e; stats.opExp += o; stats.menExp += m;
+        while(stats.exp >= 100) { stats.exp -= 100; stats.level++; }
+        while(stats.opExp >= 10) { stats.opExp -= 10; stats.opLvl++; }
+        while(stats.menExp >= 10) { stats.menExp -= 10; stats.menLvl++; }
+        if(stats.exp < 0) stats.exp = 0; if(stats.opExp < 0) stats.opExp = 0; if(stats.menExp < 0) stats.menExp = 0;
+    }
+
+    function updateUI() {
+        document.getElementById('lvl-val').innerText = `Lv.${stats.level} (${Math.floor(stats.exp)}/100)`;
+        document.getElementById('lvl-bar').style.width = `${stats.exp}%`;
+        document.getElementById('op-val').innerText = `Lv.${stats.opLvl} (${stats.opExp.toFixed(1)}/10)`;
+        document.getElementById('op-bar').style.width = `${(stats.opExp/10)*100}%`;
+        document.getElementById('men-val').innerText = `Lv.${stats.menLvl} (${stats.menExp.toFixed(1)}/10)`;
+        document.getElementById('men-bar').style.width = `${(stats.menExp/10)*100}%`;
+    }
+
+    function resetDailyProtocol() {
+        if(!confirm("Execute Daily Reset Protocol? (Experience will remain intact)")) return;
+        document.querySelectorAll('.checkbox').forEach(c => c.checked = false);
+        document.querySelectorAll('.editable-to-do').forEach(t => t.value = "");
+        gearAllDone = false; addState = [false, false, false];
+        saveAll(); saveText(); updateUI();
+    }
+
+    // --- v2.0 GLITCH ENGINE JS ---
+    function applyRandomGlitch() {
+        const glitchElements = document.querySelectorAll('.glitch-ready');
+        if (glitchElements.length === 0) return;
+        
+        const randomIndex = Math.floor(Math.random() * glitchElements.length);
+        const targetElement = glitchElements[randomIndex];
+
+        // 글리치 효과 활성화
+        targetElement.classList.add('glitch-active');
+        targetElement.style.setProperty('--glitch-translate', `${(Math.random() - 0.5) * 15}px`);
+
+        // 짧은 시간 후 비활성화 (지속적인 깜빡임 방지)
+        setTimeout(() => {
+            targetElement.classList.remove('glitch-active');
+        }, 400);
+    }
+
+    setInterval(applyRandomGlitch, 2500); // 2.5초마다 랜덤 글리치 발생
+
+    window.onload = () => {
+        const s = localStorage.getItem('cp_inf_v12_stats'); if(s) stats = JSON.parse(s);
+        const gAll = localStorage.getItem('cp_inf_v12_gear_all'); if(gAll) gearAllDone = JSON.parse(gAll);
+        const gChecks = localStorage.getItem('cp_inf_v12_gear_checks'); if(gChecks) JSON.parse(gChecks).forEach((val, i) => document.getElementById(`check-g${i+1}`).checked = val);
+        const aState = localStorage.getItem('cp_inf_v12_add'); if(aState) { addState = JSON.parse(aState); addState.forEach((val, i) => document.getElementById(`check-add${i+1}`).checked = val); }
+        const t = localStorage.getItem('cp_inf_v12_text'); if(t) { const d = JSON.parse(t); document.getElementById('text-add1').value = d.t1 || ""; document.getElementById('text-add2').value = d.t2 || ""; document.getElementById('text-add3').value = d.t3 || ""; }
+        updateUI();
+    };
+</script>
+</body>
+</html>
