@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CP2077 PROTOCOL: INFINITY v12</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Rajdhani:wght@500;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <style>
         :root {
             --cp-red: #ff003c;
@@ -257,17 +258,59 @@
 </div>
 
 <script>
-    // TIMER
-    let timerInterval, seconds = 0;
-    function startTimer() { clearInterval(timerInterval); timerInterval = setInterval(() => { seconds++; updateTimerUI(); }, 1000); }
-    function stopTimer() { clearInterval(timerInterval); }
-    function resetTimer() { stopTimer(); seconds = 0; updateTimerUI(); }
-    function updateTimerUI() {
-        const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
-        const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
-        const s = String(seconds % 60).padStart(2, '0');
-        document.getElementById('timer-display').innerText = `${h}:${m}:${s}`;
+    // TIMER    
+let timerInterval;
+let startTime = null;
+let elapsed = 0;
+let isRunning = false;
+
+function startTimer() {
+    if (!isRunning) {
+        startTime = Date.now() - elapsed * 1000;
+        isRunning = true;
+        saveTimer();
+        timerInterval = setInterval(updateTimerUI, 1000);
     }
+}
+
+function stopTimer() {
+    if (isRunning) {
+        elapsed = Math.floor((Date.now() - startTime) / 1000);
+        isRunning = false;
+        clearInterval(timerInterval);
+        saveTimer();
+    }
+}
+
+function resetTimer() {
+    stopTimer();
+    elapsed = 0;
+    startTime = null;
+    saveTimer();
+    updateTimerUI();
+}
+
+function updateTimerUI() {
+    let seconds = elapsed;
+
+    if (isRunning) {
+        seconds = Math.floor((Date.now() - startTime) / 1000);
+    }
+
+    const h = String(Math.floor(seconds / 3600)).padStart(2, '0');
+    const m = String(Math.floor((seconds % 3600) / 60)).padStart(2, '0');
+    const s = String(seconds % 60).padStart(2, '0');
+
+    document.getElementById('timer-display').innerText = `${h}:${m}:${s}`;
+}
+
+function saveTimer() {
+    localStorage.setItem('cp_timer', JSON.stringify({
+        startTime,
+        elapsed,
+        isRunning
+    }));
+}
 
     // STATS
     let stats = { level: 1, exp: 0, opLvl: 1, opExp: 0, menLvl: 1, menExp: 0 };
@@ -354,6 +397,25 @@
         const t = localStorage.getItem('cp_inf_v12_text'); if(t) { const d = JSON.parse(t); document.getElementById('text-add1').value = d.t1 || ""; document.getElementById('text-add2').value = d.t2 || ""; document.getElementById('text-add3').value = d.t3 || ""; }
         updateUI();
     };
+// TIMER LOAD
+const t = localStorage.getItem('cp_timer');
+if (t) {
+    const data = JSON.parse(t);
+    startTime = data.startTime;
+    elapsed = data.elapsed;
+    isRunning = data.isRunning;
+
+    if (isRunning) {
+        timerInterval = setInterval(updateTimerUI, 1000);
+    }
+}
+
+updateTimerUI();
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+        updateTimerUI();
+    }
+});
 </script>
 </body>
 </html>
